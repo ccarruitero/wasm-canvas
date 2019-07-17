@@ -31,6 +31,7 @@ wasm-bindgen = { version = "0.2.45", features = ["serde-serialize"]}
 wee_alloc = { version = "0.4.2", optional = true }
 serde = "^1.0"
 serde_derive = "^1.0"
+js-sys = "0.3"
 
 # The `web-sys` crate allows you to interact with the various browser APIs,
 # like the DOM.
@@ -61,5 +62,4 @@ console_error_panic_hook = "0.1.5"
 [dev-dependencies]
 wasm-bindgen-test = "0.2.45"
 futures = "0.1.27"
-js-sys = "0.3"
 wasm-bindgen-futures = "0.3"
