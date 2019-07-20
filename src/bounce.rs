@@ -1,11 +1,10 @@
 use wasm_bindgen::prelude::*;
-// use std::rc::Rc;
+use std::cell::RefCell;
+use std::rc::Rc;
 use js_sys::Math;
 use std::f64::consts::PI;
 use crate::utils::{
-    window,
     request_animation_frame,
-    document, canvas,
     context,
     width,
     height
@@ -25,8 +24,19 @@ struct Circle {
 #[wasm_bindgen]
 pub fn start() -> Result<(), JsValue> {
 
-    // draw circles
-    draw_circles();
+    // let f = Rc::new(context());
+    let f = Rc::new(RefCell::new(None));
+
+    let g = f.clone();
+
+    let closure = Closure::wrap(Box::new(move || {
+        draw_circles();
+        request_animation_frame(f.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut()> );
+
+    *g.borrow_mut() = Some(closure);
+
+    request_animation_frame(g.borrow().as_ref().unwrap());
 
     Ok(())
 }
@@ -48,11 +58,16 @@ fn draw_circles() {
 
     circles.push(circle);
 
-    for circle in circles {
+    for mut circle in circles {
         context().begin_path();
         context().set_fill_style(&JsValue::from_serde(&circle.color).unwrap());
-        context().arc(circle.x, circle.y, circle.radius, 0.0, PI * 2.0)?;
+        context().arc(circle.x, circle.y, circle.radius, 0.0, PI * 2.0).expect("something wrong");
         context().fill();
         context().close_path();
+
+        if circle.x < 0.0 || circle.x > width() as f64 { circle.dx=-circle.dx }
+        if circle.y < 0.0 || circle.y > height() as f64 { circle.dy=-circle.dy }
+        circle.x += circle.dx;
+        circle.y += circle.dy;
     }
 }
