@@ -4,11 +4,14 @@ use std::rc::Rc;
 use js_sys::Math;
 use std::f64::consts::PI;
 use crate::utils::{
+    document,
+    canvas,
     request_animation_frame,
-    context,
+    get_context,
     width,
     height
 };
+use web_sys::console;
 
 extern crate serde_derive;
 
@@ -28,13 +31,27 @@ pub fn start() -> Result<(), JsValue> {
     let f = Rc::new(RefCell::new(None));
 
     let g = f.clone();
+    let mut i = 0;
+    let canvas = canvas();
+    let attr = document().create_attribute("id")?;
+    attr.set_value("animation");
+    canvas.set_attribute_node(&attr)?;
 
-    let closure = Closure::wrap(Box::new(move || {
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        if i > 300 {
+			// body().set_text_content(Some("All done!"));
+             console::log_1(&JsValue::from_str("all done.."));
+
+            // Drop our handle to this closure so that it will get cleaned
+            // up once we return.
+            let _ = f.borrow_mut().take();
+            return;
+        }
         draw_circles();
         request_animation_frame(f.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut()> );
 
-    *g.borrow_mut() = Some(closure);
+        i += 1;
+    }) as Box<dyn FnMut()> ));
 
     request_animation_frame(g.borrow().as_ref().unwrap());
 
@@ -42,8 +59,8 @@ pub fn start() -> Result<(), JsValue> {
 }
 
 fn draw_circles() {
-    // ensure not creating new canvas
-    context().clear_rect(0.0, 0.0, width() as f64, height() as f64);
+    let context = get_context("animation");
+    context.clear_rect(0.0, 0.0, width() as f64, height() as f64);
 
     let mut circles = vec![];
 
@@ -59,11 +76,11 @@ fn draw_circles() {
     circles.push(circle);
 
     for mut circle in circles {
-        context().begin_path();
-        context().set_fill_style(&JsValue::from_serde(&circle.color).unwrap());
-        context().arc(circle.x, circle.y, circle.radius, 0.0, PI * 2.0).expect("something wrong");
-        context().fill();
-        context().close_path();
+        context.begin_path();
+        context.set_fill_style(&JsValue::from_serde(&circle.color).unwrap());
+        context.arc(circle.x, circle.y, circle.radius, 0.0, PI * 2.0).expect("something wrong");
+        context.fill();
+        context.close_path();
 
         if circle.x < 0.0 || circle.x > width() as f64 { circle.dx=-circle.dx }
         if circle.y < 0.0 || circle.y > height() as f64 { circle.dy=-circle.dy }
